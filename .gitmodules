@@ -1,3 +1,6 @@
 [submodule "libcsp"]
 	path = libcsp
 	url = https://github.com/libcsp/libcsp.git
+[submodule "csp_python/libcsp"]
+	path = csp_python/libcsp
+	url = https://github.com/libcsp/libcsp.git
