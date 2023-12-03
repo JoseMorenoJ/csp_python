@@ -31,7 +31,6 @@ option(CSP_USE_RDP "Reliable Datagram Protocol" ON)
 option(CSP_USE_HMAC "Hash-based message authentication code" ON)
 option(CSP_USE_PROMISC "Promiscious mode" ON)
 option(CSP_USE_DEDUP "Packet deduplication" ON)
-option(CSP_USE_RTABLE "Use routing table" OFF)
 
 option(CSP_ENABLE_PYTHON3_BINDINGS "Build Python3 binding" ON)
 
@@ -93,12 +92,18 @@ target_sources(csp PRIVATE
     ${CSP_SRC_PATH}/csp_service_handler.c
     ${CSP_SRC_PATH}/csp_services.c
     ${CSP_SRC_PATH}/csp_sfp.c
+    ${CSP_SRC_PATH}/rtable/csp_rtable.c
+    ${CSP_SRC_PATH}/rtable/csp_rtable_static.c
+    ${CSP_SRC_PATH}/transport/csp_rdp.c
+    ${CSP_SRC_PATH}/transport/csp_udp.c
 )
 
 ## add_subdirectory(arch)
 set(CSP_POSIX 1)
 ## add_subdirectory(posix)
 target_sources(csp PRIVATE
+    ${CSP_SRC_PATH}/arch/csp_system.c
+    ${CSP_SRC_PATH}/arch/csp_time.c
     ${CSP_SRC_PATH}/arch/posix/csp_clock.c
     ${CSP_SRC_PATH}/arch/posix/csp_malloc.c
     ${CSP_SRC_PATH}/arch/posix/csp_queue.c
@@ -122,17 +127,32 @@ target_sources(csp PRIVATE
     ${CSP_SRC_PATH}/drivers/usart/usart_linux.c
 )
 
-if(LIBSOCKETCAN_FOUND)
-    add_library(driver_can OBJECT can/can_socketcan.c)
-    target_include_directories(driver_can PRIVATE
+if(LIBZMQ_FOUND)
+    add_library(if_zmq OBJECT ${CSP_SRC_PATH}/interfaces/csp_if_zmqhub.c)
+    target_include_directories(if_zmq PRIVATE
         ${csp_inc}
-        ${LIBSOCKETCAN_INCLUDE_DIRS})
-    target_link_libraries(driver_can PRIVATE
-        ${LIBSOCKETCAN_LIBRARIES})
-    target_link_libraries(csp PRIVATE driver_can)
+        ${LIBZMQ_INCLUDE_DIRS})
+    target_link_libraries(if_zmq PRIVATE ${LIBZMQ_LIBRARIES})
+    target_link_libraries(csp PRIVATE if_zmq)
     if(BUILD_SHARED_LIBS)
-        set_property(TARGET driver_can PROPERTY POSITION_INDEPENDENT_CODE ON)
+        set_property(TARGET if_zmq PROPERTY POSITION_INDEPENDENT_CODE ON)
     endif()
+else()
+    # Include the zmqhub stub
+    target_sources(csp PRIVATE zmqhub_mock.c)
+endif()
+
+
+
+add_library(driver_can OBJECT ${CSP_SRC_PATH}/drivers/can/can_socketcan.c)
+target_include_directories(driver_can PRIVATE
+    ${csp_inc}
+    ${LIBSOCKETCAN_INCLUDE_DIRS})
+target_link_libraries(driver_can PRIVATE
+    ${LIBSOCKETCAN_LIBRARIES})
+target_link_libraries(csp PRIVATE driver_can)
+if(BUILD_SHARED_LIBS)
+    set_property(TARGET driver_can PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
 ## add_subdirectory(interfaces)
@@ -142,7 +162,6 @@ target_sources(csp PRIVATE
     ${CSP_SRC_PATH}/interfaces/csp_if_i2c.c
     ${CSP_SRC_PATH}/interfaces/csp_if_kiss.c
     ${CSP_SRC_PATH}/interfaces/csp_if_lo.c
-    ${CSP_SRC_PATH}/interfaces/csp_if_zmqhub.c
 )
 
 if(${CSP_ENABLE_PYTHON3_BINDINGS})
