@@ -11,7 +11,7 @@ Build libcsp v1.6 including the python bindings, and prepare a python script for
 The library will build under only certain conditions.
 
 - Linux OS
-- Socket CAN: `sudo apt install can-utils`
+- Socket CAN: `sudo apt install libsocketcan-dev`
 - ZMQ: `sudo apt install libzmq3-dev`
 
 ## To build
