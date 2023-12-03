@@ -1,2 +1,8 @@
 # VS Code settings
 .vscode
+
+# Python
+__pycache__
+
+# CMake
+csp_python/build
